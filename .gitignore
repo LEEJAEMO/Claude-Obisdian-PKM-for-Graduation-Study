@@ -1,0 +1,64 @@
+# ============================================================
+# claude-research-pkm — .gitignore
+# ============================================================
+# 본 파일은 PII / 저작권 / 연구 데이터를 commit 단계에서 차단합니다.
+
+# ----- 강의 자료 (저작권) -----
+*.pdf
+**/lecture-pdfs/
+**/recordings/
+**/transcripts/
+
+# ----- 연구 데이터 (00_raw, 01_processed 는 README/examples 외 제외) -----
+**/00_raw/
+**/01_processed/
+**/02_notebooks/*.ipynb
+!templates/notebook_template.ipynb
+!examples/**
+
+# ----- 자기소개서 / Career -----
+**/cover-letters/
+**/career/
+**/job-hunting/
+*resume*
+*.cv.pdf
+
+# ----- Zotero / 논문 -----
+**/zotero-library/
+**/papers/
+*.bib
+
+# ----- Claude 자동 메모리 -----
+**/.claude/projects/
+**/memory/
+MEMORY.md
+
+# ----- settings 의 개인 정보 -----
+.claude/settings.json
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
+.claude/projects/
+
+# ----- OS / 에디터 -----
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+__pycache__/
+*.pyc
+*.pyo
+.ipynb_checkpoints/
+.pytest_cache/
+*.egg-info/
+build/
+dist/
+
+# ----- 빌드 / 가상환경 -----
+.venv/
+venv/
+env/
+node_modules/
+
+# ----- 의도적으로 빈 디렉토리 유지 (.gitkeep) -----
+!.gitkeep

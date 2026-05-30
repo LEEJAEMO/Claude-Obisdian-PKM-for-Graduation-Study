@@ -1,0 +1,93 @@
+{
+  "_comment": "Example Claude Code settings. Copy to ~/.claude/settings.json and customize. Replace $PROJECT_ROOT placeholders with absolute paths to where you placed this repository.",
+
+  "env": {
+    "_comment_env": "Add your own API keys here. NEVER commit real keys.",
+    "ZOTERO_LIBRARY_ID": "<your-zotero-library-id>",
+    "ZOTERO_API_KEY": "<your-zotero-api-key>",
+    "ZOTERO_LIBRARY_TYPE": "user",
+    "MP_API_KEY": "<your-materials-project-api-key>"
+  },
+
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"$PROJECT_ROOT/.claude/hooks/guard_whisper_improvise.py\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"$PROJECT_ROOT/.claude/hooks/suggest-compact.py\"",
+            "timeout": 10,
+            "statusMessage": "Checking session state...",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "PYTHONUTF8=1 python \"$PROJECT_ROOT/scripts/lint_wikilinks.py\" --check",
+            "timeout": 30,
+            "statusMessage": "Wikilink check...",
+            "async": true
+          },
+          {
+            "type": "command",
+            "command": "PYTHONUTF8=1 python \"$PROJECT_ROOT/scripts/sync_specs.py\" --check",
+            "timeout": 20,
+            "statusMessage": "Specs sync check...",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "PYTHONUTF8=1 python \"$PROJECT_ROOT/scripts/sync_specs.py\" --check",
+            "timeout": 15,
+            "async": true
+          }
+        ]
+      },
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "PYTHONUTF8=1 python \"$PROJECT_ROOT/scripts/pkm_update_index.py\"",
+            "timeout": 10,
+            "async": true
+          }
+        ]
+      }
+    ]
+  },
+
+  "autoUpdatesChannel": "latest",
+
+  "permissions": {
+    "allow": [
+      "Bash(ls:*)"
+    ]
+  },
+
+  "cleanupPeriodDays": 99999
+}

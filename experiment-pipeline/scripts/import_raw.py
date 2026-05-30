@@ -1,0 +1,179 @@
+#!/usr/bin/env python
+"""
+import_raw.py — 실험실 PC 의 raw 데이터를 표준 프로젝트 폴더로 복사.
+
+사용:
+    python import_raw.py \\
+        --src "Z:/measurement_pc/2026-05-29/" \\
+        --project "3. Cryo" \\
+        --measurement "AMR" \\
+        --sample "sample-A" \\
+        [--date 2026-05-29]
+
+작동:
+    1. 대상 폴더 결정:
+       6. Experiment/4. Project/<project>/<date>-<measurement>/<sample>/00_raw/
+    2. 체크섬 (SHA-256) 으로 *중복 import 방지*
+    3. raw 복사 + READ-ONLY 권한
+    4. README.md 자동 생성 (frontmatter)
+    5. 표준 폴더 구조 (00_raw, 01_processed, 02_notebooks) 생성
+"""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import shutil
+import sys
+from datetime import datetime
+from pathlib import Path
+
+SCRIPT_DIR = Path(__file__).parent
+sys.path.insert(0, str(SCRIPT_DIR.parent))
+
+from modules import common  # noqa: E402
+
+# 6. Experiment 루트
+EXPERIMENT_ROOT = Path(r"$EXPERIMENT_ROOT")
+PROJECT_ROOT = EXPERIMENT_ROOT / "4. Project"
+
+
+def sha256(path: Path, chunk: int = 65536) -> str:
+    h = hashlib.sha256()
+    with open(path, 'rb') as f:
+        while True:
+            data = f.read(chunk)
+            if not data:
+                break
+            h.update(data)
+    return h.hexdigest()
+
+
+def main():
+    parser = argparse.ArgumentParser(description="실험실 PC → 본 폴더로 raw 데이터 import")
+    parser.add_argument('--src', required=True, type=Path,
+                        help='raw 데이터가 있는 폴더 (실험실 PC 의 네트워크 드라이브 등)')
+    parser.add_argument('--project', required=True,
+                        help='장기 프로젝트명 (예: "3. Cryo")')
+    parser.add_argument('--measurement', required=True,
+                        help='측정 종류 (예: AMR, AHE, MOKE, XRD)')
+    parser.add_argument('--sample', required=True,
+                        help='샘플 ID (예: sample-A)')
+    parser.add_argument('--date', default=None,
+                        help='측정 날짜 YYYY-MM-DD (생략 시 오늘)')
+    parser.add_argument('--equipment', default=None,
+                        help='장비명 (예: PPMS, Cryostat)')
+    parser.add_argument('--dry-run', action='store_true')
+    args = parser.parse_args()
+
+    src = args.src.resolve()
+    if not src.exists():
+        print(f"[ERROR] src not found: {src}")
+        sys.exit(1)
+
+    date_str = args.date or datetime.now().strftime('%Y-%m-%d')
+
+    # 대상 경로
+    measurement_folder = f"{date_str}-{args.measurement}"
+    target_base = PROJECT_ROOT / args.project / measurement_folder / args.sample
+    raw_dir = target_base / "00_raw"
+
+    print(f"=== import_raw.py ===")
+    print(f"  src         : {src}")
+    print(f"  target      : {target_base}")
+    print(f"  raw_dir     : {raw_dir}")
+    print(f"  measurement : {args.measurement}")
+    print(f"  sample      : {args.sample}")
+    print(f"  date        : {date_str}")
+
+    if args.dry_run:
+        print("[dry-run] 폴더 생성·복사 생략.")
+
+    # 표준 구조 생성
+    if not args.dry_run:
+        common.ensure_project_structure(target_base)
+
+    # 기존 체크섬 로드 (중복 방지)
+    checksum_file = raw_dir / '.checksums.json'
+    existing_checksums = {}
+    if checksum_file.exists():
+        existing_checksums = json.loads(checksum_file.read_text(encoding='utf-8'))
+
+    # src 의 모든 파일 (1-level 또는 재귀) 처리
+    src_files = sorted([f for f in src.rglob('*') if f.is_file()])
+    if not src_files:
+        print(f"[ERROR] src 에 파일 없음: {src}")
+        sys.exit(1)
+
+    new_checksums = {}
+    n_copied = 0
+    n_skipped = 0
+
+    for f in src_files:
+        rel = f.relative_to(src)
+        dst = raw_dir / rel
+        h = sha256(f)
+
+        if rel.as_posix() in existing_checksums and existing_checksums[rel.as_posix()] == h:
+            n_skipped += 1
+            new_checksums[rel.as_posix()] = h
+            continue
+
+        if not args.dry_run:
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(f, dst)
+        n_copied += 1
+        new_checksums[rel.as_posix()] = h
+        print(f"  [copy] {rel}")
+
+    print(f"\n  copied  : {n_copied}")
+    print(f"  skipped : {n_skipped} (already imported)")
+
+    if not args.dry_run:
+        checksum_file.write_text(
+            json.dumps(new_checksums, indent=2, ensure_ascii=False), encoding='utf-8'
+        )
+        common.lock_raw_readonly(raw_dir)
+
+    # README.md (frontmatter 자동 생성)
+    readme_path = target_base / 'README.md'
+    if not args.dry_run and not readme_path.exists():
+        frontmatter = {
+            'type': 'experiment-data',
+            'date': date_str,
+            'project': args.project,
+            'sample': args.sample,
+            'measurement_type': args.measurement,
+            'equipment': args.equipment,
+            'conditions': {
+                # 사용자가 수동 채움 (예: temperature, field, ...)
+            },
+            'status': 'imported',
+            'imported_at': datetime.now().isoformat(timespec='seconds'),
+            'imported_from': str(src).replace('\\', '/'),
+            'n_files': n_copied + n_skipped,
+        }
+        body = f"""# {date_str} {args.measurement} — {args.sample}
+
+> *Auto-generated by import_raw.py.* 측정 후 conditions / 고찰 등을 수동 추가.
+
+## 측정 메모
+
+<!-- 수동 기입 -->
+
+## 다음 단계
+
+1. `conditions` frontmatter 보강
+2. `python scripts/process_data.py --project_path "{target_base}"` 실행
+3. `python scripts/sync_to_obsidian.py --project_path "{target_base}"` 실행
+"""
+        common.write_frontmatter(readme_path, frontmatter, body)
+        print(f"\n[create] README.md → {readme_path}")
+
+    print(f"\n[DONE] Raw import 완료. 다음:")
+    print(f"  python process_data.py --project_path \"{target_base}\"")
+
+
+if __name__ == '__main__':
+    main()
