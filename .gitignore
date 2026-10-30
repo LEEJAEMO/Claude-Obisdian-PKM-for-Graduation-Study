@@ -1,8 +1,0 @@
-__pycache__/
-*.pyc
-.agent/
-.env
-.env.*
-.venv/
-work/
-workflow-test-*/

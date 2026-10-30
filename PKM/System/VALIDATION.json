@@ -1,0 +1,43 @@
+{
+  "version": "1.0.0",
+  "date": "2026-10-30",
+  "platform": "Windows",
+  "python": "3.11.9",
+  "tests": {
+    "run": 14,
+    "passed": 14,
+    "failed": 0,
+    "skipped": 0
+  },
+  "distribution_roots": [
+    "AGENTS.md",
+    "Project",
+    "PKM"
+  ],
+  "template_markdown": 12,
+  "checks": [
+    "root-level AGENTS deployment",
+    "all rendered Markdown first-line actual paths",
+    "folder indexes and individual documents",
+    "multiple records and index guide preservation",
+    "Project working copies with originals unchanged",
+    "existing AGENTS backup and merge",
+    "reentry without overwrite",
+    "stale-write and previous body preservation",
+    "path and unindexed-document detection",
+    "relocated workspace address refresh",
+    "Project execution with PKM evidence",
+    "read-only brief",
+    "actual CLI installation",
+    "no git/config/cache copying",
+    "interrupted write without success event"
+  ],
+  "limitations": [
+    "No actual Cofa environment integration execution",
+    "No automatic task solving or whole-session capture",
+    "AGENTS startup discovery is not refreshed automatically; startup prompt explicitly reads it",
+    "Provided preview runner may require normal Project working-directory configuration",
+    "GitHub Markdown carries install tokens; rendered destination is checked after install"
+  ],
+  "regression_fix": "Windows backslash paths must be inserted into regex replacements with a callable, not a replacement string"
+}
