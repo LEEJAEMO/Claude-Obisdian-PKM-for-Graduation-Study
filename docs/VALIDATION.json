@@ -1,0 +1,40 @@
+{
+  "date": "2026-10-30",
+  "version": "0.1.0",
+  "python": "3.11.9",
+  "platform": "Windows",
+  "tests": {
+    "run": 13,
+    "passed": 13,
+    "failed": 0,
+    "command": "python -B -X utf8 -m unittest discover -s tests -v"
+  },
+  "retrieval_acceptance": {
+    "queries": 6,
+    "expected_card_in_top_3": 6,
+    "general_accuracy_claim": false
+  },
+  "checks": [
+    "catalog hashes",
+    "path escape rejection",
+    "tamper detection",
+    "MCP lifecycle and stdio round-trip",
+    "invalid arguments",
+    "portable Unicode/space path",
+    "file preservation"
+  ],
+  "privacy": {
+    "authored_distribution_only": true,
+    "private_source_files_copied": 0,
+    "pattern_findings": 0
+  },
+  "limits": [
+    "No Cofa/Codex host integration test",
+    "Linux not tested",
+    "No full timed task rehearsal",
+    "No measured token saving",
+    "User independent explanation not observed"
+  ],
+  "protocol": "2025-11-25",
+  "dependencies": "Python standard library only"
+}

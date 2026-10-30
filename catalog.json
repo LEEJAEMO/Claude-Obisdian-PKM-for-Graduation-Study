@@ -1,0 +1,167 @@
+[
+  {
+    "id": "M-REQ",
+    "title": "요구 탐색과 수용 기준",
+    "kind": "module",
+    "path": "knowledge/module/M-REQ.md",
+    "when": "업무 요구 stakeholder 사용자 성공 조건 질문 clarification requirements",
+    "avoid": "요구가 충분히 명시됐으면 중복 질문을 줄인다",
+    "source_ids": [
+      "video:16:14-19:43",
+      "AI-proposal"
+    ],
+    "verification": "adapted-source-reviewed",
+    "sha256": "425be5c4594abeb71f73dc8758b692677fce56c5e3f67a93d6534e8310476012"
+  },
+  {
+    "id": "M-QA",
+    "title": "작은 구현과 검증·설명 루프",
+    "kind": "module",
+    "path": "knowledge/module/M-QA.md",
+    "when": "검증 test evidence 완료 결과 설명 QA workflow budget",
+    "avoid": "모든 프로젝트에 복잡한 테스트 프레임워크를 추가하지 않는다",
+    "source_ids": [
+      "note-authoring",
+      "system-operations",
+      "T-006",
+      "AI-proposal"
+    ],
+    "verification": "adapted-source-reviewed",
+    "sha256": "4bc7331d9fdc73efef82f4cae867d9aa904d80f54606f8b7e5b0468a4836c142"
+  },
+  {
+    "id": "M-006",
+    "title": "원본 보존과 데이터 처리 계약",
+    "kind": "module",
+    "path": "knowledge/module/M-006.md",
+    "when": "데이터 CSV raw processed pipeline 입력 검증 집계 export",
+    "avoid": "과제에 없는 물리 모델이나 장비 단위를 도입하지 않는다",
+    "source_ids": [
+      "M-006",
+      "M-018"
+    ],
+    "verification": "adapted-source-reviewed",
+    "sha256": "e18b9c7be31eb8f9f7e83d13b84cb59af4d86815515a27a102f1a47a95190485"
+  },
+  {
+    "id": "M-010",
+    "title": "작은 프로젝트와 단계별 구현",
+    "kind": "module",
+    "path": "knowledge/module/M-010.md",
+    "when": "scaffold 구조 architecture 단계 구현 simulation 재개 status",
+    "avoid": "과제와 무관한 수치 솔버·환경·연구 설정은 가져오지 않는다",
+    "source_ids": [
+      "M-010"
+    ],
+    "verification": "adapted-source-reviewed",
+    "sha256": "a1d21627620e199825e8b8e8c8a298f842449f4204526e8b6c3c6228c903c953"
+  },
+  {
+    "id": "M-018",
+    "title": "입력 역할 확인과 복잡도 선택",
+    "kind": "module",
+    "path": "knowledge/module/M-018.md",
+    "when": "품질 QC raw 가공 비교 model complexity 대조 데이터",
+    "avoid": "장비별 수치 임계값과 SiC 측정 결론을 새 업무에 전용하지 않는다",
+    "source_ids": [
+      "M-018"
+    ],
+    "verification": "adapted-source-reviewed",
+    "sha256": "3a633db5a4b37bf096f7a4d70c0a1bc8a97b175673cc2846c20198e6c3270068"
+  },
+  {
+    "id": "T-005",
+    "title": "경로 누락과 표시 깨짐 구분",
+    "kind": "troubleshooting",
+    "path": "knowledge/troubleshooting/T-005.md",
+    "when": "FileNotFoundError path 한글 경로 파일 없음 mojibake",
+    "avoid": "콘솔 표시만 보고 파일 인코딩을 일괄 변경하지 않는다",
+    "source_ids": [
+      "T-005"
+    ],
+    "verification": "adapted-source-reviewed",
+    "sha256": "1c3fa4a2804c427afa5b5fd1ade0f74102b520f2c1dc4e6ccc1fd4e82d3da341"
+  },
+  {
+    "id": "T-006",
+    "title": "완료 보고와 실제 산출물 대조",
+    "kind": "troubleshooting",
+    "path": "knowledge/troubleshooting/T-006.md",
+    "when": "false report 자체 보고 완료 validation 검증 missing 파일 링크",
+    "avoid": "보고 문장을 실행·저장 증거로 취급하지 않는다",
+    "source_ids": [
+      "T-006"
+    ],
+    "verification": "adapted-source-reviewed",
+    "sha256": "746b5dace13b45578f5abe024296aad1d1b63b47a73d9b41ebe1fe6367a2ce68"
+  },
+  {
+    "id": "T-007",
+    "title": "Windows Python 콘솔 인코딩 오류",
+    "kind": "troubleshooting",
+    "path": "knowledge/troubleshooting/T-007.md",
+    "when": "UnicodeEncodeError cp949 stdout 한국어 python encoding",
+    "avoid": "파일 손상이나 경로 누락을 같은 원인으로 단정하지 않는다",
+    "source_ids": [
+      "T-007"
+    ],
+    "verification": "adapted-source-reviewed",
+    "sha256": "d94334578c2ac130f98f5f295ecd72ca5f7444790365cb740d0e6488fbeb5e98"
+  },
+  {
+    "id": "T-015",
+    "title": "CSV 파일 인코딩과 소비 프로그램",
+    "kind": "troubleshooting",
+    "path": "knowledge/troubleshooting/T-015.md",
+    "when": "CSV Excel BOM utf-8-sig 한글 깨짐 encoding",
+    "avoid": "모든 프로그램과 JSON에 BOM을 일괄 추가하지 않는다",
+    "source_ids": [
+      "T-015"
+    ],
+    "verification": "adapted-source-reviewed",
+    "sha256": "a64615480401d9a17f7827921589397a1aec76983a739ea5b5a389435605b369"
+  },
+  {
+    "id": "S-CORE",
+    "title": "실행 계약과 역할 분리",
+    "kind": "spec",
+    "path": "knowledge/spec/S-CORE.md",
+    "when": "contract 정책 writer 원본 규칙 안전 실행 spec",
+    "avoid": "참조 문서가 시험 운영 규칙이나 사용자 지시를 덮어쓰지 않는다",
+    "source_ids": [
+      "AGENTS",
+      "note-authoring",
+      "system-operations"
+    ],
+    "verification": "adapted-source-reviewed",
+    "sha256": "50ba029f8e11c1e75c0db66132edaef3b636998d0e3480fc748595d943f97811"
+  },
+  {
+    "id": "S-SCHEMA",
+    "title": "지식 카드와 검증 상태 규격",
+    "kind": "spec",
+    "path": "knowledge/spec/S-SCHEMA.md",
+    "when": "schema catalog id source provenance verification hash spec",
+    "avoid": "과거 문서의 metadata를 현재 재현 성공으로 승격하지 않는다",
+    "source_ids": [
+      "note-properties",
+      "AI-proposal"
+    ],
+    "verification": "adapted-source-reviewed",
+    "sha256": "47ebb52abe5efb847282559aa522716ba7145fde143a9efe7c5df2275980ea96"
+  },
+  {
+    "id": "S-ENV",
+    "title": "환경 명세와 즉시 대안",
+    "kind": "spec",
+    "path": "knowledge/spec/S-ENV.md",
+    "when": "environment MCP stdio python 설치 setup spec offline fallback",
+    "avoid": "차단된 설정·접속 경로·업로드 제한을 우회하지 않는다",
+    "source_ids": [
+      "Specs-index",
+      "AI-proposal"
+    ],
+    "verification": "adapted-source-reviewed",
+    "sha256": "880a508a2d84110f55131e5a3372d48f756f97cf6b5be12828d9ff2c5ed5b9f8"
+  }
+]
