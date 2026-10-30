@@ -1,50 +1,46 @@
 {
-  "version": "0.2.0",
+  "version": "0.3.0",
+  "purpose": "Shared task understanding for user and agent",
   "date": "2026-10-30",
-  "platform": "Windows",
   "python": "3.11.9",
+  "platform": "Windows",
   "tests": {
-    "run": 14,
-    "passed": 14,
-    "skipped": 0,
+    "run": 17,
+    "passed": 17,
     "failed": 0,
-    "command": "python -B -X utf8 -m unittest discover -s tests -v"
+    "skipped": 0
   },
-  "scope": [
-    "empty task initialization",
-    "spec revision with history and events",
-    "append-only reported evidence",
-    "stale and concurrent writer rejection",
-    "write interruption without false success",
-    "resume current artifact hashes",
-    "MCP tools and real stdio round trip",
-    "CLI in Unicode and space path",
-    "source preservation"
+  "new_checks": [
+    "brief reads current spec/plan/status/decisions/evidence without writing",
+    "truncation flags and bounds; no duplicate brief file",
+    "CLI brief from another cwd",
+    "actual stdio agent_brief after save/log",
+    "MCP brief reflects updated plan"
   ],
-  "artifact_names": [
-    "spec",
-    "plan",
-    "decisions",
-    "evidence",
-    "status",
-    "modules",
-    "troubleshooting"
-  ],
-  "tools": [
+  "audit": {
+    "command_interception_hook": false,
+    "implementation_approval_gate": false,
+    "forced_stage_transition": false,
+    "storage_integrity_checks": true,
+    "whole_conversation_auto_capture": false,
+    "required_record_count": false
+  },
+  "tool_names": [
+    "agent_brief",
     "agent_state",
     "agent_read",
     "agent_save",
     "agent_log"
   ],
-  "domain_knowledge_files": 0,
-  "network_or_shell_execution_tools": 0,
+  "workspace_artifacts": 7,
+  "private_source_files_copied": 0,
   "privacy_pattern_findings": 0,
   "limitations": [
-    "Event statements are agent/user reported, not independent verification",
-    "No automatic transcript capture or runtime hook enforcement",
-    "No Cofa/Codex host integration test",
-    "Linux not tested",
-    "No full timed exam rehearsal"
-  ],
-  "environment_note": "Sandbox temporary-directory rename/replace was denied. Tests use a temporary directory inside the writable checkout; final tests pass without elevation."
+    "Brief returns exact excerpts, not inferred summaries",
+    "User-facing explanation and updates require agent action",
+    "No independent verification of reported test results",
+    "No automatic requirement-to-code tracing",
+    "Cofa host not tested",
+    "Linux not tested"
+  ]
 }

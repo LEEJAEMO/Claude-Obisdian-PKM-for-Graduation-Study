@@ -1,85 +1,80 @@
-# Task Agent Workflow 0.2.0
+# Shared Task Workspace 0.3.0
 
-과제 수행 중 **spec을 직접 만들고 개정하며, 계획·결정·실행 근거·오류·재개 상태를 로컬에 남기는** AI Agent 운영 하네스다. 배포하는 것은 작업 구조와 도구다. 분야별 지식 카드·개인 자료·완성 과제는 포함하지 않는다.
+**사용자와 AI Agent가 같은 task의 목표·진행·판단·검증 근거를 공유하며 작업하는 정리 체계**다. 과제 내용을 받아 spec을 만들고, 구현하면서 계획·결정·검사·상태를 갱신해 대화가 길어져도 문맥을 이어간다.
 
-이전 0.1 지식 조회 배포본을 이 구조로 교체했다. 기존 main 브랜치는 유지하고 `hackathon-kit-20261030` 브랜치에서 배포한다.
+이식하는 것은 **작업을 구조화하고 기록을 다시 찾아 이어가는 방식**이다. 특정 분야 지식이나 과제 정답을 옮기지 않는다. 이전 “운영 하네스” 표현은 행동 통제 장치처럼 읽힐 수 있어 0.3부터 공유 작업 공간으로 설명한다.
 
-## 먼저 읽기
+## 시작
 
-[AGENT_GUIDE.md](AGENT_GUIDE.md)를 제공된 Codex에 명시적으로 읽게 한다. 자동 인식·강제 실행되는 hook이 아니다. 기존 과제 AGENTS.md/설정은 보존한다.
-
-Python 3.10 이상, 표준 라이브러리만 필요하다. API 키·pip 설치·외부 AI·웹 서버·DB가 필요 없다. 런타임은 네트워크나 셸을 실행하지 않는다.
+[AGENT_GUIDE.md](AGENT_GUIDE.md)를 제공된 Codex가 명시적으로 읽게 한다. 기존 과제 AGENTS.md와 설정은 그대로 사용한다. Python 3.10 이상, 표준 라이브러리만 필요하다.
 
 ```text
 git clone --depth 1 --single-branch --branch hackathon-kit-20261030 https://github.com/LEEJAEMO/Claude-Obisdian-PKM-for-Graduation-Study.git agent-workflow
-python -B -X utf8 agent-workflow/workflow.py --workspace /absolute/path/to/task init
-python -B -X utf8 agent-workflow/workflow.py --workspace /absolute/path/to/task state
+python -B -X utf8 agent-workflow/workflow.py --workspace TASK init
+python -B -X utf8 agent-workflow/workflow.py --workspace TASK brief
 ```
 
-과제 폴더는 이미 존재해야 한다. Windows도 해당 환경의 실제 절대 경로를 사용한다. 내려받는 도구 폴더와 과제 폴더를 구분한다. Git이 없으면 공개 고정 commit ZIP을 제공되는 방식으로 내려받는다. 고정 SHA는 함께 제공하는 Vault 당일 지침에서 확인한다.
+TASK는 이미 존재하는 실제 과제 폴더다. brief는 spec·plan·status·decisions·evidence의 현재 본문 발췌를 함께 반환한다. Agent는 실제 코드와 대조해 “목표 / 완료·진행 / 열린 질문 / 주요 판단 / 다음 행동”을 사용자에게 짧게 설명한다.
 
-## 과제별로 생성되는 것
+## 과제에 남는 것
 
 ```text
 task/
-  기존 과제 파일과 구현 코드
+  실제 구현 코드와 과제 파일
   .agent/
-    manifest.json
-    spec.md                 요구·입출력·제약·수용 기준
-    plan.md                 수용 기준별 작업과 상태
-    decisions.md            선택·대안·이유·코드 위치
-    evidence.md             검사 명령·예상·실제·실패/미실행
-    troubleshooting.md      실제 실패의 재현·원인·수정·재검증
-    modules.md              과제 안에서 반복된 절차만
-    status.md               재개 지점과 다음 행동
-    events.jsonl            append-only 사건 로그
+    spec.md                 무엇을 왜 만들지, 확인한 요구와 가정
+    plan.md                 어떤 작업으로 풀고 있는지
+    status.md               현재까지 한 것·남은 것·다음 행동
+    decisions.md            선택과 변경 이유
+    evidence.md             실제로 확인한 동작과 근거
+    modules.md              이번 task의 반복 절차
+    troubleshooting.md      실제 오류와 해결·재검증
+    events.jsonl            시간순 중요 변화
     history/                문서 변경 전 본문
+    manifest.json           저장 형식 정보
 ```
 
-spec은 Agent가 실제 요구를 읽고 작성한다. 사용자가 새 요구를 알려 주면 spec을 개정하고 영향받는 계획·검사도 갱신한다. 처음 생성되는 파일은 빈 구조이며 완료된 작업이나 검증 통과를 뜻하지 않는다.
+기록은 빈 양식으로 시작한다. 작은 task는 spec/status 중심으로 짧게 쓰고 필요할 때 확장한다. 문서가 모두 완성될 때까지 코딩을 기다리게 하는 승인 단계는 없다. [전체 흐름과 이식 범위](WHAT_IS_TRANSFERRED.md), [창작 사용 예시](EXAMPLE.md)를 참고한다.
 
-## CLI로 spec 갱신하기
+요구 ID를 작업·코드 위치·검사에서 함께 참조하면 무엇을 어디까지 해결했는지 찾기 쉽다. 요구·설계·구현·검증을 진행하면서 함께 다듬는다. 매 편집마다 모든 문서를 다시 쓰지 않고 중요한 변화 때 관련 기록만 남긴다.
+
+## CLI와 MCP
+
+CLI는 init / brief / state / read / save / log를 제공한다.
 
 ```text
 python -B -X utf8 agent-workflow/workflow.py --workspace TASK read spec
-python -B -X utf8 agent-workflow/workflow.py --workspace TASK save spec --file SPEC_DRAFT.md --expected-sha HASH_FROM_READ
-python -B -X utf8 agent-workflow/workflow.py --workspace TASK log decision "필수 조회 흐름을 먼저 구현하기로 결정"
-python -B -X utf8 agent-workflow/workflow.py --workspace TASK state
+python -B -X utf8 agent-workflow/workflow.py --workspace TASK save spec --file TASK_SPEC_DRAFT.md --expected-sha HASH_FROM_READ
+python -B -X utf8 agent-workflow/workflow.py --workspace TASK log decision "집계와 표시를 나누면 변경 영향을 설명하기 쉬워 이 구조를 선택"
+python -B -X utf8 agent-workflow/workflow.py --workspace TASK brief
 ```
 
-`TASK`, `SPEC_DRAFT.md`, `HASH_FROM_READ`는 실제 경로·값으로 바꾼다. 초안 파일은 과제 내부에 둔다. save는 현재 hash가 달라지면 거부하며 이전 본문과 변경 로그를 보존한다. 다른 artifact도 같은 방식이다. 같은 내용 저장은 새 변경 이력을 만들지 않는다.
+실제 경로/hash로 바꾼다. save는 이전 본문과 변경 사건을 보존한다. 직접 편집도 가능하지만 그 편집의 자동 이력은 생기지 않는다. 저장 충돌·경로·형식 검사와 잠금은 공동 기록의 무결성을 위한 장치다. 다른 구현 도구·명령·일반 파일 편집에 hook을 설치하거나 작업 진행을 막지 않는다.
 
-검증 로그는 `log verification SUMMARY --evidence-json JSON` 형태다. evidence의 `status`는 `passed`, `failed`, `not-run` 중 하나여야 한다. command, expected, actual, output_file을 함께 적을 수 있다. 셸별 JSON 인용이 불편하면 MCP를 사용하거나 과제 내부 evidence 문서를 편집·저장한다.
-
-로그는 호출자가 보고한 근거다. 도구가 테스트를 대신 실행하거나 합격을 보증하지 않는다. 수동 편집을 허용하는 로컬 파일이므로 로그도 변조 방지 감사 시스템이 아니다. save가 도중에 실패하면 `artifact_save_started`만 남을 수 있다. 다음 실행에서 실제 hash와 history를 대조하고 자동 성공으로 처리하지 않는다.
-
-## 선택: MCP
-
-초기화한 과제 디렉터리 하나에 서버를 바인딩한다. MCP 도구는 그 디렉터리 `.agent/`만 관리하며 일반 파일 쓰기·명령 실행 도구가 없다.
-
-제공되는 정상 등록 경로가 있을 때만 다음 일반 Codex CLI 형태를 적용한다. 실제 환경에서 등록이 막히면 CLI를 사용하고 제한을 우회하지 않는다.
+정상 MCP 등록 기능이 제공되면 같은 기록을 도구 호출로 사용할 수 있다. 기존 안내와 같은 일반 Codex CLI 형식이며 실제 호스트 지원은 별도 확인한다.
 
 ```text
-codex mcp add task-workflow -- /absolute/path/to/python -B -X utf8 /absolute/path/to/agent-workflow/server.py --workspace /absolute/path/to/task
+codex mcp add task-workflow -- /absolute/python -B -X utf8 /absolute/agent-workflow/server.py --workspace /absolute/task
 ```
 
-| 도구 | 역할 |
+| 도구 | 용도 |
 |---|---|
-| agent_state(limit=10) | 문서 hash와 최근 사건·로그 개수 조회 |
-| agent_read(name) | spec/plan/status 등 현재 본문과 hash 조회 |
-| agent_save(name, content, expected_sha) | 문서 개정·이전 본문 보존·변경 사건 기록 |
-| agent_log(kind, summary, evidence) | 실제 단계·결정·오류·검증·재개 사건 추가 |
+| agent_brief(max_chars=1600) | 목표·계획·상태·결정·검증을 한 번에 읽기 |
+| agent_state(limit=10) | 문서 hash와 최근 사건 확인 |
+| agent_read(name) | 필요한 한 문서의 본문과 hash 읽기 |
+| agent_save(name, content, expected_sha) | 개정 전 내용을 보존하며 기록 갱신 |
+| agent_log(kind, summary, evidence) | 중요 변화·판단·오류·검증·재개 사건 추가 |
 
-MCP `2025-11-25` tools-only stdio 어댑터이며 공식 SDK나 전체 MCP 구현은 아니다. 로컬 프로토콜 시험과 실제 Cofa 호스트 연결은 구분한다. 쓰기 도구 호출이 성공했는지 애매하면 state를 읽고 확인한다. append 호출을 무조건 재시도하면 중복 로그가 생길 수 있다. 기존 writer의 lock을 자동 제거하지 않는다.
+brief는 현재 발췌이며 추정 요약이나 완료 판정이 아니다. 출처·hash·잘림 표시를 반환하고 중복 요약 파일을 만들지 않는다. 현재 코드와 문서가 맞는지는 Agent가 실제 파일/출력과 대조한다.
 
-## 시험에서의 사용
+실제 구현·검사는 제공된 Codex의 정상 도구로 한다. 이 프로젝트는 명령 실행기나 외부 AI를 추가하지 않는다. 모든 대화를 자동 수집하거나 기록의 진위를 독립 검증하지 않는다. 로컬 기록은 수정 가능한 파일이며 변조 방지 감사 시스템도 아니다.
 
-시험 전에 공개 배포를 고정하고 당일은 다운로드만 한다. 제공된 Codex 안에서만 사용한다. Git push·문제/파일/결과물 외부 전송·별도 AI·Claude Code·Computer Use와 차단 우회는 하지 않는다. 후속 서술형에서는 AI와 복사/붙여넣기 없이 직접 답한다. 사전 체험에서 CLI/MCP 지원을 확인한다.
+## 시험 반입과 확인 범위
 
-## 확인
+시험 전 공개 배포본을 고정하고 당일은 다운로드한다. 생성된 task spec·로그·구현·결과물은 외부로 전송/Git push하지 않는다. 제공 AI·Computer Use·후속 서술형 등 실제 시험 안내를 따른다.
+
+MCP 2025-11-25 tools-only stdio 구현이다. 연결이 안 되면 CLI 또는 정상 파일 편집으로 같은 정리 방식을 사용할 수 있다. 자동 전체 수집·실제 Cofa 연결·시험 성과는 보장하지 않는다. 실제 확인 결과는 [VALIDATION.json](VALIDATION.json), 설계 출처는 [SOURCES.md](SOURCES.md)에 남긴다.
 
 ```text
 python -B -X utf8 -m unittest discover -s agent-workflow/tests -v
 ```
-
-현재 실제 검증 결과는 [VALIDATION.json](VALIDATION.json), 도구 사용 예시는 [EXAMPLE.md](EXAMPLE.md), 출처 범위는 [SOURCES.md](SOURCES.md)에 기록한다. 예시는 창작 입력이며 실제 시험 과제·모범답안이 아니다.

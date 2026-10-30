@@ -1,4 +1,4 @@
-"""Local task specs, evidence, decisions, and append-only events. Python 3.10+."""
+"""Shared task memory: goals, progress, decisions, evidence and working history."""
 from __future__ import annotations
 
 import argparse
@@ -12,7 +12,7 @@ import tempfile
 import time
 import uuid
 
-VERSION = "0.2.0"
+VERSION = "0.3.0"
 ARTIFACTS = {
     "spec": "# Task specification\n\nStatus: draft; not yet confirmed.\n\n## User and problem\n\n## Confirmed requirements and sources\n\n## Assumptions and open questions\n\n## Inputs and outputs\n\n## Constraints and non-goals\n\n## Acceptance criteria\n\n| ID | Requirement | Expected observable behavior | Verification |\n|---|---|---|---|\n",
     "plan": "# Execution plan\n\nStatus: not started.\n\n| Task | Acceptance ID | Files / owner | Next action | Status |\n|---|---|---|---|---|\n\n## Simplest working path\n\n## Time and usage budget\n",
@@ -173,6 +173,22 @@ class Workflow:
             events = [json.loads(line) for line in lines[-limit:]]
         return {"artifacts": artifacts, "recent_events": events, "event_count": len(lines), "note": "Artifact hashes establish saved state; event claims require checking actual code and outputs."}
 
+    def brief(self, max_chars=1600):
+        """Read one consistent view of current shared records; never infer progress."""
+        if type(max_chars) is not int or not 200 <= max_chars <= 4000:
+            raise ValueError("max_chars must be an integer from 200 to 4000 per section")
+        with self.lock():
+            sections = []
+            for name in ("spec", "plan", "status", "decisions", "evidence"):
+                item = self.read(name)
+                sections.append({"name": name, "source": f".agent/{name}.md", "sha256": item["sha256"],
+                                 "excerpt": item["content"][:max_chars], "truncated": len(item["content"]) > max_chars})
+            lines = self.path("events.jsonl").read_text(encoding="utf-8").splitlines()
+            events = [json.loads(line) for line in lines[-5:]]
+        return {"purpose": "A shared view of the task for the user and agent", "sections": sections,
+                "recent_events": events, "event_count": len(lines),
+                "note": "Exact saved excerpts, not an AI summary or a completion verdict. Read full source when truncated. Reconcile with actual code and outputs."}
+
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
@@ -180,6 +196,7 @@ def main():
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("init")
     sub.add_parser("state")
+    brief = sub.add_parser("brief"); brief.add_argument("--max-chars", type=int, default=1600)
     read = sub.add_parser("read"); read.add_argument("name", choices=ARTIFACTS)
     save = sub.add_parser("save"); save.add_argument("name", choices=ARTIFACTS); save.add_argument("--file", required=True); save.add_argument("--expected-sha", required=True)
     log = sub.add_parser("log"); log.add_argument("kind", choices=sorted(KINDS)); log.add_argument("summary"); log.add_argument("--evidence-json", default="{}")
@@ -188,6 +205,7 @@ def main():
         flow = Workflow(args.workspace)
         if args.command == "init": result = flow.initialize()
         elif args.command == "state": result = flow.state()
+        elif args.command == "brief": result = flow.brief(args.max_chars)
         elif args.command == "read": result = flow.read(args.name)
         elif args.command == "save": result = flow.save(args.name, Path(args.file).read_text(encoding="utf-8"), args.expected_sha)
         else: result = flow.log(args.kind, args.summary, json.loads(args.evidence_json))

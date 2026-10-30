@@ -127,7 +127,7 @@ class WorkflowTests(unittest.TestCase):
         self.assertIn("error",Session(self.flow).handle(request("tools/list")))
         session=self.session()
         names={t["name"]:t for t in session.handle(request("tools/list"))["result"]["tools"]}
-        self.assertEqual(set(names),{"agent_state","agent_read","agent_save","agent_log"})
+        self.assertEqual(set(names),{"agent_brief","agent_state","agent_read","agent_save","agent_log"})
         self.assertFalse(names["agent_save"]["annotations"]["readOnlyHint"])
         bad=session.handle(request("tools/call",{"name":"agent_read","arguments":{"name":"../task.txt"}}))
         self.assertTrue(bad["result"]["isError"])
@@ -143,22 +143,55 @@ class WorkflowTests(unittest.TestCase):
                   {"jsonrpc":"2.0","method":"notifications/initialized"},request("tools/list",ident=2),
                   request("tools/call",{"name":"agent_save","arguments":{"name":"spec","content":"R-001: synthetic subprocess requirement","expected_sha":sha}},3),
                   request("tools/call",{"name":"agent_log","arguments":{"kind":"decision","summary":"Synthetic test decision"}},4),
-                  request("tools/call",{"name":"agent_state"},5)]
+                  request("tools/call",{"name":"agent_state"},5),
+                  request("tools/call",{"name":"agent_brief"},6)]
         run=subprocess.run([sys.executable,"-B","-X","utf8",str(ROOT/"server.py"),"--workspace",str(self.root)],input="\n".join(map(json.dumps,messages))+"\n",capture_output=True,encoding="utf-8",cwd=self.tmp.name,timeout=15)
         self.assertEqual(run.returncode,0,run.stderr)
         replies=[json.loads(line) for line in run.stdout.splitlines()]
-        self.assertEqual(len(replies),5)
+        self.assertEqual(len(replies),6)
         self.assertTrue(all(not r.get("result",{}).get("isError",False) for r in replies))
         self.assertIn("R-001",Workflow(self.root).read("spec")["content"])
         self.assertEqual(Workflow(self.root).state()["event_count"],4)
+        brief=json.loads(replies[-1]["result"]["content"][0]["text"])
+        self.assertIn("R-001",brief["sections"][0]["excerpt"])
 
     def test_real_cli_init_and_read_from_other_directory(self):
         target=self.root/"new task";target.mkdir()
         cmd=[sys.executable,"-B","-X","utf8",str(ROOT/"workflow.py"),"--workspace",str(target)]
-        for suffix in [["init"],["read","spec"],["state"]]:
+        for suffix in [["init"],["read","spec"],["state"],["brief"]]:
             run=subprocess.run(cmd+suffix,cwd=self.tmp.name,capture_output=True,encoding="utf-8",timeout=15)
             self.assertEqual(run.returncode,0,run.stderr)
             self.assertIsInstance(json.loads(run.stdout),dict)
+
+    def test_brief_reads_current_context_without_creating_records(self):
+        for name,content in [("spec","R-001: group requests by status"),("status","In progress: grouping; not-run: empty input check")]:
+            old=self.flow.read(name);self.flow.save(name,content,old["sha256"])
+        before={str(p.relative_to(self.root)):p.read_bytes() for p in self.root.rglob('*') if p.is_file()}
+        brief=self.flow.brief()
+        sections={s["name"]:s for s in brief["sections"]}
+        self.assertIn("R-001",sections["spec"]["excerpt"])
+        self.assertIn("not-run",sections["status"]["excerpt"])
+        self.assertEqual(sections["status"]["sha256"],self.flow.read("status")["sha256"])
+        self.assertEqual(before,{str(p.relative_to(self.root)):p.read_bytes() for p in self.root.rglob('*') if p.is_file()})
+
+    def test_brief_marks_truncation_and_has_no_duplicate_summary_file(self):
+        old=self.flow.read("spec");self.flow.save("spec","x"*600,old["sha256"])
+        result=self.flow.brief(200);section=result["sections"][0]
+        self.assertTrue(section["truncated"]);self.assertEqual(len(section["excerpt"]),200)
+        self.assertFalse((self.root/".agent/brief.md").exists())
+        for n in [0,True,4001]:
+            with self.assertRaises(ValueError):self.flow.brief(n)
+
+    def test_mcp_brief_reflects_updates_without_gating_implementation(self):
+        session=self.session();old=self.flow.read("plan")
+        self.flow.save("plan","Next: implement parser in src/parser.py",old["sha256"])
+        reply=session.handle(request("tools/call",{"name":"agent_brief"}))
+        self.assertFalse(reply["result"]["isError"])
+        data=json.loads(reply["result"]["content"][0]["text"])
+        self.assertIn("src/parser.py",next(s["excerpt"] for s in data["sections"] if s["name"]=="plan"))
+        # Normal host-side coding is unaffected by unfinished spec/evidence records.
+        (self.root/"implementation.py").write_text("answer = 42\n",encoding="utf-8")
+        self.assertEqual((self.root/"implementation.py").read_text(encoding="utf-8"),"answer = 42\n")
 
 
 if __name__=="__main__":unittest.main()
