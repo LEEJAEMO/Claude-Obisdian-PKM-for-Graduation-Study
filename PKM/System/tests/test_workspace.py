@@ -68,6 +68,7 @@ class WorkspaceTests(unittest.TestCase):
   moved=Workspace(dest);self.assertFalse(moved.check()['ok'])
   moved.repair_paths();self.assertTrue(moved.check()['ok'])
   self.assertTrue((dest/'AGENTS.md').read_text(encoding='utf-8').startswith(HEADER+str(dest)))
+  self.assertIn('과제 루트: `'+str(dest)+'`',(dest/'AGENTS.md').read_text(encoding='utf-8'))
  def test_no_arbitrary_paths_or_unrelated_pkm_overwrite(self):
   with self.assertRaises(ValueError):self.w.safe('../outside.md')
   (self.root/'PKM').mkdir();(self.root/'PKM/own.txt').write_text('keep',encoding='utf-8')

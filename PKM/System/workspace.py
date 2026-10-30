@@ -192,13 +192,17 @@ class Workspace:
   return {'markdown_files':count,'issues':issues,'ok':not issues,'project':str(self.root/'Project'),'pkm':str(self.root/'PKM')}
  def repair_paths(self):
   with self.lock():
+   manifest=self.manifest();previous_root=manifest.get('current_root',manifest.get('root_at_install',''))
    files=[self.safe('AGENTS.md')]+[p for d in ['Project','PKM'] for p in self.safe(d).rglob('*.md') if not any(x in {'.git','node_modules','.venv','venv','__pycache__'} for x in p.relative_to(self.root).parts)]
    changed=0
    for p in files:
-    self.safe(p.relative_to(self.root));old=p.read_text(encoding='utf-8-sig');new=addressed(p,old.replace('{{ROOT}}',str(self.root)))
+    self.safe(p.relative_to(self.root));old=p.read_text(encoding='utf-8-sig');body=old.replace('{{ROOT}}',str(self.root))
+    if p==self.root/'AGENTS.md' and previous_root:body=body.replace('과제 루트: `'+previous_root+'`','과제 루트: `'+str(self.root)+'`')
+    new=addressed(p,body)
     if new!=old:
      atomic(self.safe('PKM/System/History/path-'+uuid.uuid4().hex+'.txt'),p.read_bytes());atomic(p,new.encode());changed+=1
    for area in AREAS:self._index(area)
+   manifest['current_root']=str(self.root);atomic(self.safe('PKM/System/workspace.json'),(json.dumps(manifest,ensure_ascii=False,indent=2)+'\n').encode())
    self.event('path_headers_refreshed','Refreshed current file locations',{'changed':changed})
   return {'changed':changed,'check':self.check()}
  def brief(self):
