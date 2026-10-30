@@ -1,9 +1,8 @@
 __pycache__/
 *.pyc
-.venv/
+.agent/
 .env
 .env.*
-!.env.example
+.venv/
 work/
-private/
-*.log
+workflow-test-*/
