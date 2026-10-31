@@ -17,6 +17,37 @@ class WorkspaceTests(unittest.TestCase):
   self.w=Workspace(self.root)
  def tearDown(self):self.tmp.cleanup()
  def install(self):return self.w.install(SOURCE,True)
+ def test_author_and_model_preserved_when_human_edits_ai_document(self):
+  self.install();ai=Workspace(self.root,workspace.identity('ai','test-model','test fixture'))
+  doc=ai.new('Spec','author test','AI draft');p=Path(doc['path']);rel=p.relative_to(self.root)
+  human=Workspace(self.root,workspace.identity('human','ignored','user confirmed'))
+  human.update(rel,'# Human revision',doc['sha256'])
+  meta,_=workspace.split_metadata(p.read_text(encoding='utf-8'))
+  self.assertEqual(meta['과제 루트 기준 상대경로'],rel.as_posix())
+  self.assertEqual(meta['최초 작성 모델'],'test-model')
+  self.assertEqual(meta['최초 작성 주체'],'ai')
+  self.assertEqual(meta['최근 수정 주체'],'human')
+  self.assertEqual(meta['최근 수정 모델'],'not-applicable')
+  before=meta.copy();human.repair_paths()
+  self.assertEqual(before,workspace.split_metadata(p.read_text(encoding='utf-8'))[0])
+  self.assertTrue(human.check()['ok'])
+ def test_unknown_original_not_attributed_to_installer(self):
+  ai=Workspace(self.root,workspace.identity('ai','test-model','test fixture'));ai.install(SOURCE,True)
+  meta,_=workspace.split_metadata((self.root/'Project/README.md').read_text(encoding='utf-8'))
+  self.assertEqual(meta['최초 작성 주체'],'unknown')
+  self.assertEqual(meta['최초 작성 모델'],'unknown')
+ def test_legacy_path_only_and_missing_relative_are_detected_and_repaired(self):
+  self.install();p=self.w.entries('Spec')[0]
+  p.write_text(HEADER+str(p)+'\n\n# legacy\n',encoding='utf-8')
+  self.assertFalse(self.w.check()['ok']);self.w.repair_paths()
+  meta,body=workspace.split_metadata(p.read_text(encoding='utf-8'))
+  self.assertEqual(meta['최초 작성 주체'],'unknown');self.assertEqual(body,'# legacy')
+  self.assertTrue(self.w.check()['ok'])
+ def test_mixed_and_unknown_model_identity(self):
+  self.install();mixed=Workspace(self.root,workspace.identity('mixed','unknown','human and AI contributions confirmed'))
+  doc=mixed.new('Log','shared drafting','Both contributed');meta,_=workspace.split_metadata(Path(doc['path']).read_text(encoding='utf-8'))
+  self.assertEqual(meta['최초 작성 주체'],'mixed');self.assertEqual(meta['최초 작성 모델'],'unknown')
+  with self.assertRaises(ValueError):workspace.identity('ai','model\ninjection','test')
  def test_root_layout_and_all_path_headers(self):
   r=self.install();self.assertTrue(r['check']['ok'])
   for name in ['AGENTS.md','Project','PKM']:self.assertTrue((self.root/name).exists())
@@ -45,7 +76,7 @@ class WorkspaceTests(unittest.TestCase):
   b=self.w.new('Spec','export','R-003: export records')
   self.assertNotEqual(a['id'],b['id']);text=p.read_text(encoding='utf-8')
   for r in [a,b]:self.assertIn(Path(r['path']).name,text)
-  self.assertEqual(guide,text.split('<!-- entries:start -->')[0])
+  self.assertEqual(workspace.split_metadata(guide)[1],workspace.split_metadata(text.split('<!-- entries:start -->')[0])[1])
  def test_update_history_and_stale_write(self):
   self.install();p=self.w.entries('Spec')[0];rel=p.relative_to(self.root);old=self.w.read(rel)
   self.w.update(rel,'# Updated task\nR-004: empty input behavior',old['sha256'])

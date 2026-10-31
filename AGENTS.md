@@ -1,4 +1,11 @@
 현재 파일 절대경로: {{ROOT}}/AGENTS.md
+과제 루트 기준 상대경로: AGENTS.md
+최초 작성 주체: ai
+최초 작성 모델: gpt-6.1-sol
+최초 작성 근거: Codex 실행 세션의 모델 정보
+최근 수정 주체: ai
+최근 수정 모델: gpt-6.1-sol
+최근 수정 근거: Codex 실행 세션의 모델 정보
 
 # 사용자와 Agent가 함께 이해하는 과제 작업 공간
 
@@ -56,3 +63,20 @@ Agent가 새로 만들거나 갱신하는 **모든 .md 파일의 첫 줄**은 �
 
 제공된 Codex와 허용된 공개 도구만 사용한다. Git push·문제/파일/결과물 외부 전송·외부 AI·Computer Use·차단 우회는 하지 않는다.
 후속 서술형은 AI·복사/붙여넣기 없이 직접 답한다. 기록도 시험 환경 내부에 유지한다.
+
+## 문서 상단의 경로와 작성 주체 (v1.1)
+
+모든 작성·갱신 Markdown은 아래 8개 항목을 맨 위에 순서대로 적는다. YAML이나 Obsidian 플러그인 없이 읽는 일반 텍스트다.
+1. 현재 파일 절대경로: 실제 파일의 절대경로
+2. 과제 루트 기준 상대경로: 루트 AGENTS.md가 있는 과제 루트 기준, /로 구분 (예: PKM/Spec/S001-task.md)
+3. 최초 작성 주체: ai / human / mixed / unknown
+4. 최초 작성 모델: 실제 확인한 모델 ID, 인간이면 not-applicable, 확인 불가면 unknown
+5. 최초 작성 근거: 실행 환경에 실제 노출된 모델 정보나 사용자 확인 등 짧은 출처
+6. 최근 수정 주체: ai / human / mixed / unknown
+7. 최근 수정 모델: 실제 확인한 모델 ID, 인간이면 not-applicable, 확인 불가면 unknown
+8. 최근 수정 근거: 실제 확인한 출처
+
+최초 작성 정보는 보존하고 내용 수정자는 최근 수정 항목에 기록한다. 모델명은 기본 설정·브랜드·기억으로 추정하지 않는다. 인간이 작성했음이 확인된 경우에만 human으로 쓴다. 인간과 AI의 공동 작성이 확인되면 mixed와 확인한 모델·기여 근거를 적는다. 기존 원문/복사본의 작성자가 불명확하면 unknown이며 설치한 Agent를 원저자로 기록하지 않는다. 경로만 복사·이동·수정할 때 작성자 정보를 새로 귀속하지 않는다.
+
+도구 new/update의 실행 예: --root 실제루트 --actor ai --model 실제로확인한ID --identity-source 실행환경의모델표시 new Spec 주제 --body-file Project/draft.txt
+인간 작성 확인 시 --actor human --identity-source 사용자확인. 미지정 모델은 unknown이다. 이 옵션은 하위 명령(new/update) 앞에 둔다. 직접 편집할 때도 같은 규칙을 지킨다. repair-paths는 주소·누락 헤더를 정리하되 최초/최근 작성자 정보는 보존하며, 없던 정보는 unknown으로 남긴다.

@@ -1,11 +1,11 @@
 {
-  "version": "1.0.0",
-  "date": "2026-10-30",
+  "version": "1.1.0",
+  "date": "2026-10-31",
   "platform": "Windows",
   "python": "3.11.9",
   "tests": {
-    "run": 14,
-    "passed": 14,
+    "run": 18,
+    "passed": 18,
     "failed": 0,
     "skipped": 0
   },
@@ -30,7 +30,11 @@
     "read-only brief",
     "actual CLI installation",
     "no git/config/cache copying",
-    "interrupted write without success event"
+    "interrupted write without success event",
+    "absolute and task-root-relative path headers",
+    "AI human mixed and unknown author metadata",
+    "creator preservation across edits and path repair",
+    "unknown input authors not attributed to installer"
   ],
   "limitations": [
     "No actual Cofa environment integration execution",

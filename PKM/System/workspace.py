@@ -13,7 +13,7 @@ import tempfile
 import time
 import uuid
 
-VERSION='1.0.0'
+VERSION='1.1.0'
 AREAS={'Plan':'P','Spec':'S','Evidence':'E','Decisions':'D','Status':'ST','Log':'L','Modules':'M','Troubleshooting':'T'}
 SKIP_INPUT={'.git','.codex','.claude','.agents','.agent','Project','PKM','AGENTS.md','AGENTS.override.md','node_modules','.venv','venv','__pycache__','.pytest_cache','dist','build','agent-workflow','preflight-check'}
 HEADER='현재 파일 절대경로: '
@@ -31,13 +31,31 @@ def atomic(path,data):
  finally:
   if os.path.exists(name):os.unlink(name)
 
-def addressed(path,body):
- body=body.lstrip('\ufeff')
- if body.startswith(HEADER):body=body.split('\n',1)[1] if '\n' in body else ''
- return HEADER+str(path.resolve())+'\n\n'+body.lstrip('\n')
+META_KEYS=['현재 파일 절대경로','과제 루트 기준 상대경로','최초 작성 주체','최초 작성 모델','최초 작성 근거','최근 수정 주체','최근 수정 모델','최근 수정 근거']
+def identity(actor='unknown',model='unknown',source='unknown'):
+ if actor not in {'ai','human','mixed','unknown'}:raise ValueError('actor must be ai/human/mixed/unknown')
+ if not all(isinstance(x,str) and x.strip() and '\n' not in x and '\r' not in x for x in [model,source]):raise ValueError('identity fields must be nonempty single lines')
+ if actor=='human':model='not-applicable'
+ if actor=='unknown':model='unknown'
+ return [actor,model,source]
+def split_metadata(body):
+ lines=body.lstrip('\ufeff').splitlines();meta={}
+ while lines and any(lines[0].startswith(k+': ') for k in META_KEYS):
+  k,v=lines.pop(0).split(': ',1);meta[k]=v
+ return meta,'\n'.join(lines).lstrip('\n')
+def addressed(path,body,root=None,actor=None,original=None):
+ meta,body=split_metadata(body)
+ if original is not None:meta=split_metadata(original)[0]
+ creator=[meta.get(k,'unknown') for k in META_KEYS[2:5]]
+ if not meta and original is None and actor is not None:creator=actor
+ latest=actor if actor is not None else [meta.get(k,'unknown') for k in META_KEYS[5:8]]
+ root=Path(root) if root is not None else path.parent
+ values=[str(path.resolve()),path.resolve().relative_to(root.resolve()).as_posix(),*creator,*latest]
+ return '\n'.join(k+': '+v for k,v in zip(META_KEYS,values))+'\n\n'+body+'\n'
 
 class Workspace:
- def __init__(self,root):
+ def __init__(self,root,actor=None):
+  self.actor=actor
   self.root=Path(root).resolve(strict=True)
   if not self.root.is_dir() or self.root==Path(self.root.anchor):raise ValueError('choose an existing task directory, not a filesystem root')
   self.system=self.root/'PKM/System'
@@ -70,7 +88,9 @@ class Workspace:
   p=self.safe('PKM/System/events.jsonl');row={'id':uuid.uuid4().hex,'at_utc':now(),'kind':kind,'summary':summary,'details':details or {}}
   with p.open('ab') as f:f.write((json.dumps(row,ensure_ascii=False)+'\n').encode());f.flush();os.fsync(f.fileno())
   return row
- def markdown(self,path,body):atomic(path,addressed(path,body).encode('utf-8'))
+ def markdown(self,path,body):
+  old=path.read_text(encoding='utf-8-sig') if path.exists() else None
+  atomic(path,addressed(path,body,self.root,original=old).encode('utf-8'))
  def install(self,source,copy_inputs=False):
   source=Path(source).resolve(strict=True)
   if not (source/'AGENTS.md').is_file() or not (source/'PKM/index.md').is_file():raise ValueError('invalid distribution root')
@@ -135,14 +155,14 @@ class Workspace:
   if p.suffix.lower()!='.md' or not p.is_file():raise ValueError('choose an existing Markdown file')
   raw=p.read_bytes()
   return {'path':str(p),'sha256':sha(raw),'content':raw.decode('utf-8')}
- def _index(self,area):
+ def _index(self,area,actor=None):
   p=self.safe(f'PKM/{area}/index.md');text=p.read_text(encoding='utf-8')
   if '<!-- entries:start -->' not in text or '<!-- entries:end -->' not in text:raise ValueError('area index markers missing; preserve custom guide and repair explicitly')
   rows=['| 문서 | 현재 절대경로 |','|---|---|']
   for q in self.entries(area):rows.append(f'| [{q.stem}]({q.name}) | `{q.resolve()}` |')
   replacement='<!-- entries:start -->\n'+'\n'.join(rows)+'\n<!-- entries:end -->'
   text=re.sub(r'<!-- entries:start -->.*?<!-- entries:end -->',lambda _:replacement,text,flags=re.S)
-  self.markdown(p,text)
+  atomic(p,addressed(p,text,self.root,actor,p.read_text(encoding='utf-8')).encode('utf-8'))
  def new(self,area,title,body,status='draft',related=None):
   with self.lock():return self._new(area,title,body,status,related or [])
  def _new(self,area,title,body,status,related):
@@ -154,9 +174,9 @@ class Workspace:
   slug=re.sub(r'[^\w-]+','-',title.strip(),flags=re.U).strip('-')[:60] or 'note'
   ident=f'{AREAS[area]}{count:03}';p=self.safe(f'PKM/{area}/{ident}-{slug}.md')
   content=f'# {ident} — {title}\n\n상태: {status}\n관련: '+(', '.join(related) or '아직 연결 없음')+'\n\n'+body+'\n'
-  self.markdown(p,content)
+  atomic(p,addressed(p,content,self.root,self.actor).encode('utf-8'))
   self.event('document_created',title,{'path':str(p),'id':ident,'area':area,'status':status})
-  self._index(area)
+  self._index(area,self.actor or identity())
   return {'id':ident,'path':str(p),'index':str(self.root/f'PKM/{area}/index.md'),'sha256':sha(p.read_bytes())}
  def update(self,relative,body,expected_sha):
   if not isinstance(body,str) or len(body.encode())>131072:raise ValueError('body too large')
@@ -165,12 +185,12 @@ class Workspace:
   with self.lock():
    old=self.read(relative)
    if expected_sha!=old['sha256']:raise ValueError('document changed; reread')
-   content=addressed(p,body).encode()
+   content=addressed(p,body,self.root,self.actor or identity(),old['content']).encode()
    if content==p.read_bytes():return {'saved':False,'path':str(p),'sha256':old['sha256']}
    backup=self.safe('PKM/System/History/'+uuid.uuid4().hex+'.txt');atomic(backup,p.read_bytes())
    self.event('save_started',str(p),{'before_sha256':old['sha256'],'intended_sha256':sha(content),'backup':str(backup)})
    atomic(p,content);self.event('document_saved',str(p),{'sha256':sha(content)})
-   area=p.relative_to(self.root/'PKM').parts[0];self._index(area)
+   area=p.relative_to(self.root/'PKM').parts[0];self._index(area,self.actor or identity())
    return {'saved':True,'path':str(p),'sha256':sha(content)}
  def check(self):
   self.manifest();issues=[];count=0
@@ -183,6 +203,14 @@ class Workspace:
    text=p.read_text(encoding='utf-8-sig')
    if text.split('\n',1)[0]!=HEADER+str(p.resolve()):issues.append({'path':str(p),'issue':'missing or stale first-line absolute path'})
    if '{{ROOT}}' in text:issues.append({'path':str(p),'issue':'unrendered root token'})
+   meta,_=split_metadata(text)
+   if list(meta)!=META_KEYS:issues.append({'path':str(p),'issue':'missing or unordered metadata header'})
+   if meta.get(META_KEYS[1])!=p.relative_to(self.root).as_posix():issues.append({'path':str(p),'issue':'missing or stale relative path'})
+   for keys in [META_KEYS[2:5],META_KEYS[5:8]]:
+    try:
+     vals=[meta.get(k,'') for k in keys]
+     if identity(*vals)!=vals:raise ValueError('inconsistent author model')
+    except ValueError:issues.append({'path':str(p),'issue':'invalid author/model metadata'})
   for area in AREAS:
    index=self.safe(f'PKM/{area}/index.md')
    if not index.is_file():issues.append({'path':str(index),'issue':'missing index'});continue
@@ -198,7 +226,7 @@ class Workspace:
    for p in files:
     self.safe(p.relative_to(self.root));old=p.read_text(encoding='utf-8-sig');body=old.replace('{{ROOT}}',str(self.root))
     if p==self.root/'AGENTS.md' and previous_root:body=body.replace('과제 루트: `'+previous_root+'`','과제 루트: `'+str(self.root)+'`')
-    new=addressed(p,body)
+    new=addressed(p,body,self.root)
     if new!=old:
      atomic(self.safe('PKM/System/History/path-'+uuid.uuid4().hex+'.txt'),p.read_bytes());atomic(p,new.encode());changed+=1
    for area in AREAS:self._index(area)
@@ -213,6 +241,7 @@ class Workspace:
 
 def main():
  p=argparse.ArgumentParser(description=__doc__);p.add_argument('--root',required=True)
+ p.add_argument('--actor',choices=['ai','human','mixed','unknown']);p.add_argument('--model',default='unknown');p.add_argument('--identity-source',default='unknown')
  s=p.add_subparsers(dest='command',required=True)
  i=s.add_parser('install');i.add_argument('--source',default=str(Path(__file__).resolve().parents[2]));i.add_argument('--copy-inputs',action='store_true')
  s.add_parser('check');s.add_parser('brief');s.add_parser('repair-paths')
@@ -221,7 +250,7 @@ def main():
  u=s.add_parser('update');u.add_argument('path');u.add_argument('--body-file',required=True);u.add_argument('--expected-sha',required=True)
  a=p.parse_args()
  try:
-  w=Workspace(a.root)
+  w=Workspace(a.root,identity(a.actor,a.model,a.identity_source) if a.actor else None)
   if a.command=='install':result=w.install(a.source,a.copy_inputs)
   elif a.command=='read':result=w.read(a.path)
   elif a.command=='new':result=w.new(a.area,a.title,Path(a.body_file).read_text(encoding='utf-8'),a.status)
